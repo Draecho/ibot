@@ -1,0 +1,2 @@
+[deploy]
+startCommand = "node openclaw.mjs gateway --allow-unconfigured --bind lan"
