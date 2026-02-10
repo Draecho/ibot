@@ -1,0 +1,36 @@
+
+node_modules
+**/node_modules/
+.env
+docker-compose.extra.yml
+dist
+# NOTE: pnpm-lock.yaml is NOT excluded here (unlike .gitignore)
+# because the Dockerfile needs it for `pnpm install --frozen-lockfile`
+bun.lock
+bun.lockb
+coverage
+__pycache__/
+*.pyc
+.tsbuildinfo
+.pnpm-store
+.worktrees/
+.DS_Store
+**/.DS_Store
+ui/src/ui/__screenshots__/
+ui/playwright-report/
+ui/test-results/
+apps/
+bin/
+Core/
+vendor/
+.local/
+IDENTITY.md
+USER.md
+.tgz
+.serena/
+/memory/
+.agent/*.json
+local/
+.git
+.claude/
+.idea/
