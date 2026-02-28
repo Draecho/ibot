@@ -42,8 +42,8 @@ export function isSubagentEvent(evt: AgentEventPayload): boolean {
  */
 export function formatStage(evt: AgentEventPayload): string | undefined {
   const data = evt.data;
-  if (evt.stream === "tool" && typeof data?.tool === "string") {
-    return TOOL_STAGE_LABELS[data.tool] ?? `Using ${data.tool}`;
+  if (evt.stream === "tool" && typeof data?.name === "string") {
+    return TOOL_STAGE_LABELS[data.name] ?? `Using ${data.name}`;
   }
   if (evt.stream === "lifecycle") {
     const phase = data?.phase as string | undefined;

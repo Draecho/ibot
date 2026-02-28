@@ -12,7 +12,7 @@ function makeEvent(overrides: Partial<AgentEventPayload> = {}): AgentEventPayloa
     seq: 1,
     stream: "tool",
     ts: Date.now(),
-    data: { tool: "read" },
+    data: { name: "read" },
     sessionKey: "agent:main:subagent:abc",
     ...overrides,
   };
@@ -32,13 +32,13 @@ describe("isSubagentEvent", () => {
 
 describe("formatStage", () => {
   it("maps known tool names", () => {
-    expect(formatStage(makeEvent({ data: { tool: "read" } }))).toBe("Reading files");
-    expect(formatStage(makeEvent({ data: { tool: "exec" } }))).toBe("Running command");
-    expect(formatStage(makeEvent({ data: { tool: "grep" } }))).toBe("Searching code");
+    expect(formatStage(makeEvent({ data: { name: "read" } }))).toBe("Reading files");
+    expect(formatStage(makeEvent({ data: { name: "exec" } }))).toBe("Running command");
+    expect(formatStage(makeEvent({ data: { name: "grep" } }))).toBe("Searching code");
   });
 
   it("generates label for unknown tools", () => {
-    expect(formatStage(makeEvent({ data: { tool: "custom_tool" } }))).toBe("Using custom_tool");
+    expect(formatStage(makeEvent({ data: { name: "custom_tool" } }))).toBe("Using custom_tool");
   });
 
   it("maps lifecycle events", () => {
@@ -83,7 +83,7 @@ describe("SubagentProgressEmitter", () => {
     const now = Date.now();
 
     emitter.onEvent(makeEvent({ ts: now }));
-    emitter.onEvent(makeEvent({ ts: now + 100, seq: 2, data: { tool: "write" } }));
+    emitter.onEvent(makeEvent({ ts: now + 100, seq: 2, data: { name: "write" } }));
 
     // Only first event should be broadcast
     expect(broadcast).toHaveBeenCalledTimes(1);
@@ -95,7 +95,7 @@ describe("SubagentProgressEmitter", () => {
     const now = Date.now();
 
     emitter.onEvent(makeEvent({ ts: now }));
-    emitter.onEvent(makeEvent({ ts: now + 1500, seq: 2, data: { tool: "write" } }));
+    emitter.onEvent(makeEvent({ ts: now + 1500, seq: 2, data: { name: "write" } }));
 
     expect(broadcast).toHaveBeenCalledTimes(2);
   });

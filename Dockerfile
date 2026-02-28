@@ -46,6 +46,7 @@ RUN if [ -n "$OPENCLAW_INSTALL_BROWSER" ]; then \
 
 USER node
 COPY --chown=node:node . .
+RUN chmod +x openclaw.mjs
 RUN pnpm build
 # Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
 ENV OPENCLAW_PREFER_PNPM=1

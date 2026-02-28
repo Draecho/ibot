@@ -21,6 +21,7 @@ import {
   resolveMemoryFlushSettings,
   shouldRunMemoryFlush,
 } from "./memory-flush.js";
+import { runProfileExtraction } from "./profile-extraction.js";
 import type { FollowupRun } from "./queue.js";
 import { incrementCompactionCount } from "./session-updates.js";
 
@@ -167,6 +168,51 @@ export async function runMemoryFlushIfNeeded(params: {
   } catch (err) {
     logVerbose(`memory flush run failed: ${String(err)}`);
   }
+
+  // Run profile extraction after memory flush (fire-and-forget, does not block reply)
+  const profileExtractionCfg =
+    params.cfg?.agents?.defaults?.compaction?.memoryFlush?.profileExtraction;
+  const sessionCount = activeSessionEntry?.compactionCount ?? 0;
+  void runProfileExtraction({
+    config: profileExtractionCfg,
+    sessionCount,
+    runAgentTurn: async (prompt) => {
+      const extractionRunId = crypto.randomUUID();
+      if (params.sessionKey) {
+        registerAgentRunContext(extractionRunId, {
+          sessionKey: params.sessionKey,
+          verboseLevel: params.resolvedVerboseLevel,
+        });
+      }
+      await runWithModelFallback({
+        ...resolveModelFallbackOptions(params.followupRun.run),
+        run: (provider, model) => {
+          const { authProfile, embeddedContext, senderContext } = buildEmbeddedRunContexts({
+            run: params.followupRun.run,
+            sessionCtx: params.sessionCtx,
+            hasRepliedRef: params.opts?.hasRepliedRef,
+            provider,
+          });
+          const runBaseParams = buildEmbeddedRunBaseParams({
+            run: params.followupRun.run,
+            provider,
+            model,
+            runId: extractionRunId,
+            authProfile,
+          });
+          return runEmbeddedPiAgent({
+            ...embeddedContext,
+            ...senderContext,
+            ...runBaseParams,
+            prompt,
+            extraSystemPrompt: params.followupRun.run.extraSystemPrompt ?? "",
+          });
+        },
+      });
+    },
+  }).catch((err) => {
+    logVerbose(`profile extraction failed: ${String(err)}`);
+  });
 
   return activeSessionEntry;
 }

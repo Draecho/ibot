@@ -2,6 +2,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { ResolvedQmdConfig } from "./backend-config.js";
 import { resolveMemoryBackendConfig } from "./backend-config.js";
+import type { LlmInvoker } from "./llm-expander.js";
 import type {
   MemoryEmbeddingProbeResult,
   MemorySearchManager,
@@ -20,6 +21,7 @@ export async function getMemorySearchManager(params: {
   cfg: OpenClawConfig;
   agentId: string;
   purpose?: "default" | "status";
+  llmInvoker?: LlmInvoker;
 }): Promise<MemorySearchManagerResult> {
   const resolved = resolveMemoryBackendConfig(params);
   if (resolved.backend === "qmd" && resolved.qmd) {

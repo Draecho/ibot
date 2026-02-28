@@ -38,9 +38,9 @@ function getDateString(): string {
 
 export class AuditWriter {
   private readonly baseDir: string;
-  private readonly logger?: { warn?: (...args: unknown[]) => void };
+  private readonly logger?: { warn?: (message: string) => void };
 
-  constructor(outputDir: string, logger?: { warn?: (...args: unknown[]) => void }) {
+  constructor(outputDir: string, logger?: { warn?: (message: string) => void }) {
     this.baseDir = path.resolve(outputDir);
     this.logger = logger;
   }

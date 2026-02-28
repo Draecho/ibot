@@ -21,6 +21,7 @@ import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js"
 import { isMemoryPath, normalizeExtraMemoryPaths } from "./internal.js";
 import { MemoryManagerEmbeddingOps } from "./manager-embedding-ops.js";
 import { searchKeyword, searchVector } from "./manager-search.js";
+import { createDefaultLlmQueryExpander, type LlmInvoker } from "./llm-expander.js";
 import { extractKeywords, expandQueryWithLlm } from "./query-expansion.js";
 import type { LlmQueryExpander } from "./query-expansion.js";
 import type {
@@ -106,6 +107,7 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
     cfg: OpenClawConfig;
     agentId: string;
     purpose?: "default" | "status";
+    llmInvoker?: LlmInvoker;
   }): Promise<MemoryIndexManager | null> {
     const { cfg, agentId } = params;
     const settings = resolveMemorySearchConfig(cfg, agentId);
@@ -136,6 +138,13 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
       providerResult,
       purpose: params.purpose,
     });
+
+    // Wire LLM query reformulation if configured
+    const reformulationCfg = cfg.memory?.queryReformulation;
+    if (reformulationCfg?.enabled && params.llmInvoker) {
+      manager.setLlmExpander(createDefaultLlmQueryExpander(reformulationCfg, params.llmInvoker));
+    }
+
     INDEX_CACHE.set(key, manager);
     return manager;
   }
