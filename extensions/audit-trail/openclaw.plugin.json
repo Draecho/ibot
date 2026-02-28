@@ -1,0 +1,14 @@
+{
+  "id": "audit-trail",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "outputDir": {
+        "type": "string",
+        "description": "Directory for audit JSONL files (relative to workspace root)",
+        "default": "audit"
+      }
+    }
+  }
+}

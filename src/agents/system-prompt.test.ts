@@ -636,6 +636,46 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("## Reactions");
     expect(prompt).toContain("Reactions are enabled for Telegram in MINIMAL mode.");
   });
+
+  it("injects per-channel persona when runtimeChannel matches", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      runtimeInfo: { channel: "slack" },
+      persona: { slack: "Be concise and professional", telegram: "Be casual and friendly" },
+    });
+
+    expect(prompt).toContain("## Persona");
+    expect(prompt).toContain("When responding on slack: Be concise and professional");
+    expect(prompt).not.toContain("telegram");
+  });
+
+  it("lists all persona entries when no runtime channel", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      persona: { slack: "Professional tone", telegram: "Casual tone" },
+    });
+
+    expect(prompt).toContain("## Persona");
+    expect(prompt).toContain("When responding on slack: Professional tone");
+    expect(prompt).toContain("When responding on telegram: Casual tone");
+  });
+
+  it("omits persona section when persona is empty", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      persona: {},
+    });
+
+    expect(prompt).not.toContain("## Persona");
+  });
+
+  it("omits persona section when not provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+    });
+
+    expect(prompt).not.toContain("## Persona");
+  });
 });
 
 describe("buildSubagentSystemPrompt", () => {

@@ -34,9 +34,23 @@ function normalizeParts(parts: number, messageCount: number): number {
   return Math.min(Math.max(1, Math.floor(parts)), Math.max(1, messageCount));
 }
 
+const DEFAULT_ROLE_WEIGHTS = { user: 2.0, assistant: 1.0, toolError: 1.5 };
+
+function resolveRoleWeight(
+  message: AgentMessage,
+  weights?: { user?: number; assistant?: number; toolError?: number },
+): number {
+  const role = (message as any).role as string | undefined;
+  const w = { ...DEFAULT_ROLE_WEIGHTS, ...weights };
+  if (role === "user") return w.user;
+  if (role === "toolResult" && (message as any).isError) return w.toolError;
+  return w.assistant;
+}
+
 export function splitMessagesByTokenShare(
   messages: AgentMessage[],
   parts = DEFAULT_PARTS,
+  roleWeights?: { user?: number; assistant?: number; toolError?: number },
 ): AgentMessage[][] {
   if (messages.length === 0) {
     return [];
@@ -46,14 +60,17 @@ export function splitMessagesByTokenShare(
     return [messages];
   }
 
-  const totalTokens = estimateMessagesTokens(messages);
+  const totalTokens = messages.reduce(
+    (sum, msg) => sum + estimateCompactionMessageTokens(msg) * resolveRoleWeight(msg, roleWeights),
+    0,
+  );
   const targetTokens = totalTokens / normalizedParts;
   const chunks: AgentMessage[][] = [];
   let current: AgentMessage[] = [];
   let currentTokens = 0;
 
   for (const message of messages) {
-    const messageTokens = estimateCompactionMessageTokens(message);
+    const messageTokens = estimateCompactionMessageTokens(message) * resolveRoleWeight(message, roleWeights);
     if (
       chunks.length < normalizedParts - 1 &&
       current.length > 0 &&
@@ -341,6 +358,7 @@ export function pruneHistoryForContextShare(params: {
   maxContextTokens: number;
   maxHistoryShare?: number;
   parts?: number;
+  roleWeights?: { user?: number; assistant?: number; toolError?: number };
 }): {
   messages: AgentMessage[];
   droppedMessagesList: AgentMessage[];
@@ -361,7 +379,7 @@ export function pruneHistoryForContextShare(params: {
   const parts = normalizeParts(params.parts ?? DEFAULT_PARTS, keptMessages.length);
 
   while (keptMessages.length > 0 && estimateMessagesTokens(keptMessages) > budgetTokens) {
-    const chunks = splitMessagesByTokenShare(keptMessages, parts);
+    const chunks = splitMessagesByTokenShare(keptMessages, parts, params.roleWeights);
     if (chunks.length <= 1) {
       break;
     }

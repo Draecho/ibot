@@ -1,4 +1,4 @@
-lockfileVersion: '9.0'
+  lockfileVersion: '9.0'
 
 settings:
   autoInstallPeers: true
@@ -257,6 +257,8 @@ importers:
         specifier: ^0.1.13
         version: 0.1.13(zod@4.3.6)
 
+  extensions/audit-trail: {}
+
   extensions/bluebubbles: {}
 
   extensions/copilot-proxy: {}
@@ -397,6 +399,8 @@ importers:
   extensions/signal: {}
 
   extensions/slack: {}
+
+  extensions/smart-truncation: {}
 
   extensions/synology-chat:
     dependencies:

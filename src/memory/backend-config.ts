@@ -69,6 +69,7 @@ export type ResolvedQmdConfig = {
   scope?: SessionSendPolicyConfig;
 };
 
+// A3: Default to local-only "builtin" backend (FTS5) — works without any embedding provider.
 const DEFAULT_BACKEND: MemoryBackend = "builtin";
 const DEFAULT_CITATIONS: MemoryCitationsMode = "auto";
 const DEFAULT_QMD_INTERVAL = "5m";

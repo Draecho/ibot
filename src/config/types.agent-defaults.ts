@@ -266,6 +266,11 @@ export type AgentDefaultsConfig = {
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: AgentSandboxConfig;
+  /**
+   * Per-channel persona overrides. Keys are channel IDs (e.g. "slack", "telegram"),
+   * values are persona text injected into the system prompt when responding on that channel.
+   */
+  persona?: Record<string, string>;
 };
 
 export type AgentCompactionMode = "default" | "safeguard";
@@ -281,6 +286,8 @@ export type AgentCompactionConfig = {
   reserveTokensFloor?: number;
   /** Max share of context window for history during safeguard pruning (0.1–0.9, default 0.5). */
   maxHistoryShare?: number;
+  /** Role-based token weighting for compaction pruning (higher = more important to keep). */
+  roleWeights?: { user?: number; assistant?: number; toolError?: number };
   /** Pre-compaction memory flush (agentic turn). Default: enabled. */
   memoryFlush?: AgentCompactionMemoryFlushConfig;
 };
@@ -294,4 +301,13 @@ export type AgentCompactionMemoryFlushConfig = {
   prompt?: string;
   /** System prompt appended for the memory flush turn. */
   systemPrompt?: string;
+  /** User behavior profile extraction settings. */
+  profileExtraction?: {
+    /** Enable post-session profile extraction (default: false). */
+    enabled?: boolean;
+    /** Run extraction every N sessions (default: 5). */
+    frequency?: number;
+    /** Custom extraction prompt (overrides default). */
+    prompt?: string;
+  };
 };

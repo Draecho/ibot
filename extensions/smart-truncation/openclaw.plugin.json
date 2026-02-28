@@ -1,0 +1,14 @@
+{
+  "id": "smart-truncation",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "maxChars": {
+        "type": "number",
+        "description": "Maximum characters for truncated tool results",
+        "default": 80000
+      }
+    }
+  }
+}

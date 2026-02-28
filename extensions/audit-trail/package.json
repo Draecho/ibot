@@ -1,0 +1,11 @@
+{
+  "name": "@openclaw/audit-trail",
+  "version": "2026.2.26",
+  "description": "JSONL audit trail for tool calls",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

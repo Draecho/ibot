@@ -21,7 +21,8 @@ import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js"
 import { isMemoryPath, normalizeExtraMemoryPaths } from "./internal.js";
 import { MemoryManagerEmbeddingOps } from "./manager-embedding-ops.js";
 import { searchKeyword, searchVector } from "./manager-search.js";
-import { extractKeywords } from "./query-expansion.js";
+import { extractKeywords, expandQueryWithLlm } from "./query-expansion.js";
+import type { LlmQueryExpander } from "./query-expansion.js";
 import type {
   MemoryEmbeddingProbeResult,
   MemoryProviderStatus,
@@ -99,6 +100,7 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
   >();
   private sessionWarm = new Set<string>();
   private syncing: Promise<void> | null = null;
+  private llmExpander?: LlmQueryExpander;
 
   static async get(params: {
     cfg: OpenClawConfig;
@@ -204,6 +206,10 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
     }
   }
 
+  setLlmExpander(expander: LlmQueryExpander | undefined): void {
+    this.llmExpander = expander;
+  }
+
   async search(
     query: string,
     opts?: {
@@ -239,7 +245,9 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
 
       // Extract keywords for better FTS matching on conversational queries
       // e.g., "that thing we discussed about the API" → ["discussed", "API"]
-      const keywords = extractKeywords(cleaned);
+      const keywords = this.llmExpander
+        ? await expandQueryWithLlm(cleaned, this.llmExpander).catch(() => extractKeywords(cleaned))
+        : extractKeywords(cleaned);
       const searchTerms = keywords.length > 0 ? keywords : [cleaned];
 
       // Search with each keyword and merge results

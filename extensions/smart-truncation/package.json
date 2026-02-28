@@ -1,0 +1,11 @@
+{
+  "name": "@openclaw/smart-truncation",
+  "version": "2026.2.26",
+  "description": "Smart tool result truncation preserving structure",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

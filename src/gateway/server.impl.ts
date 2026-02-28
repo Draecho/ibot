@@ -69,6 +69,7 @@ import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { createChannelManager } from "./server-channels.js";
 import { createAgentEventHandler } from "./server-chat.js";
 import { createGatewayCloseHandler } from "./server-close.js";
+import { SubagentProgressEmitter } from "./subagent-progress.js";
 import { buildGatewayCronService } from "./server-cron.js";
 import { startGatewayDiscovery } from "./server-discovery-runtime.js";
 import { applyGatewayLaneConcurrency } from "./server-lanes.js";
@@ -632,6 +633,11 @@ export async function startGatewayServer(
         }),
       );
 
+  const subagentProgress = minimalTestGateway ? null : new SubagentProgressEmitter(broadcast);
+  const subagentProgressUnsub = minimalTestGateway
+    ? null
+    : onAgentEvent((evt) => subagentProgress?.onEvent(evt));
+
   const heartbeatUnsub = minimalTestGateway
     ? null
     : onHeartbeatEvent((evt) => {
@@ -899,6 +905,7 @@ export async function startGatewayServer(
     healthInterval,
     dedupeCleanup,
     agentUnsub,
+    subagentProgressUnsub,
     heartbeatUnsub,
     chatRunState,
     clients,
