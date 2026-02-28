@@ -46,7 +46,12 @@ RUN if [ -n "$OPENCLAW_INSTALL_BROWSER" ]; then \
 
 USER node
 COPY --chown=node:node . .
-RUN chmod +x openclaw.mjs
+# Ensure openclaw.mjs is executable and the bin shim exists on PATH.
+# pnpm install runs before COPY so the root package bin link may be missing.
+RUN chmod +x openclaw.mjs && \
+    mkdir -p node_modules/.bin && \
+    ln -sf ../../openclaw.mjs node_modules/.bin/openclaw
+ENV PATH="/app/node_modules/.bin:${PATH}"
 RUN pnpm build
 # Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
 ENV OPENCLAW_PREFER_PNPM=1
