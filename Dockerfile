@@ -59,10 +59,13 @@ RUN pnpm ui:build
 
 ENV NODE_ENV=production
 
-# Security hardening: Run as non-root user
-# The node:22-bookworm image includes a 'node' user (uid 1000)
-# This reduces the attack surface by preventing container escape via root privileges
-USER node
+# Entrypoint runs as root to fix volume ownership, then drops to node user.
+# The node:22-bookworm image includes a 'node' user (uid 1000).
+USER root
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Start gateway server with default config.
 # Binds to loopback (127.0.0.1) by default for security.
