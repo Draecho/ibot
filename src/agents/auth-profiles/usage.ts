@@ -1,6 +1,7 @@
 import type { OpenClawConfig } from "../../config/config.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { saveAuthProfileStore, updateAuthProfileStoreWithLock } from "./store.js";
+import { deriveCircuitState, markHalfOpenSuccess, resetCircuit } from "./circuit-breaker.js";
 import type { AuthProfileFailureReason, AuthProfileStore, ProfileUsageStats } from "./types.js";
 
 const FAILURE_REASON_PRIORITY: AuthProfileFailureReason[] = [
@@ -209,11 +210,14 @@ export function clearExpiredCooldowns(store: AuthProfileStore, now?: number): bo
     }
 
     // Reset error counters when ALL cooldowns have expired so the profile gets
-    // a fair retry window. Preserves lastFailureAt for the failureWindowMs
-    // decay check in computeNextProfileUsageStats.
+    // a fair retry window (circuit-breaker half-open → closed). Preserves
+    // lastFailureAt for the failureWindowMs decay check in
+    // computeNextProfileUsageStats. Also reset halfOpenSuccessCount so the
+    // circuit starts fresh.
     if (profileMutated && !resolveProfileUnusableUntil(stats)) {
       stats.errorCount = 0;
       stats.failureCounts = undefined;
+      stats.halfOpenSuccessCount = 0;
     }
 
     if (profileMutated) {
@@ -242,15 +246,9 @@ export async function markAuthProfileUsed(params: {
         return false;
       }
       freshStore.usageStats = freshStore.usageStats ?? {};
-      freshStore.usageStats[profileId] = {
-        ...freshStore.usageStats[profileId],
-        lastUsed: Date.now(),
-        errorCount: 0,
-        cooldownUntil: undefined,
-        disabledUntil: undefined,
-        disabledReason: undefined,
-        failureCounts: undefined,
-      };
+      freshStore.usageStats[profileId] = applySuccessToStats(
+        freshStore.usageStats[profileId] ?? {},
+      );
       return true;
     },
   });
@@ -263,16 +261,37 @@ export async function markAuthProfileUsed(params: {
   }
 
   store.usageStats = store.usageStats ?? {};
-  store.usageStats[profileId] = {
-    ...store.usageStats[profileId],
+  store.usageStats[profileId] = applySuccessToStats(store.usageStats[profileId] ?? {});
+  saveAuthProfileStore(store, agentDir);
+}
+
+/**
+ * Apply a successful usage to profile stats, handling circuit-breaker transitions:
+ * - half_open → increment halfOpenSuccessCount; fully reset when threshold met
+ * - closed/open → full reset (existing behavior)
+ */
+function applySuccessToStats(existing: ProfileUsageStats): ProfileUsageStats {
+  const state = deriveCircuitState(existing);
+  if (state === "half_open") {
+    const incremented = markHalfOpenSuccess({ ...existing, lastUsed: Date.now() });
+    // Check if threshold met → promote to closed
+    const newState = deriveCircuitState(incremented);
+    if (newState === "closed") {
+      return resetCircuit({ ...incremented, lastUsed: Date.now() });
+    }
+    return incremented;
+  }
+  // closed or open (open shouldn't normally reach here, but handle gracefully)
+  return {
+    ...existing,
     lastUsed: Date.now(),
     errorCount: 0,
     cooldownUntil: undefined,
     disabledUntil: undefined,
     disabledReason: undefined,
     failureCounts: undefined,
+    halfOpenSuccessCount: 0,
   };
-  saveAuthProfileStore(store, agentDir);
 }
 
 export function calculateAuthProfileCooldownMs(errorCount: number): number {

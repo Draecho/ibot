@@ -10,6 +10,7 @@ import {
   resolveProfilesUnavailableReason,
   resolveAuthProfileOrder,
 } from "./auth-profiles.js";
+import { deriveCircuitState } from "./auth-profiles/circuit-breaker.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
 import {
   coerceToFailoverError,
@@ -355,12 +356,21 @@ function resolveCooldownDecision(params: {
     };
   }
 
-  // For primary: try when requested model or when probe allows.
+  // Use circuit-breaker state for clearer attempt/skip logic.
+  // In half-open state, allow probes through to test recovery.
+  const circuitStates = params.profileIds.map((id) => {
+    const stats = params.authStore.usageStats?.[id];
+    return stats ? deriveCircuitState(stats, params.now) : "closed";
+  });
+  const anyHalfOpen = circuitStates.includes("half_open");
+
+  // For primary: try when requested model, when probe allows, or when any
+  // profile is in half-open (testing recovery).
   // For same-provider fallbacks: only relax cooldown on rate_limit, which
   // is commonly model-scoped and can recover on a sibling model.
   const shouldAttemptDespiteCooldown =
-    (params.isPrimary && (!params.requestedModel || shouldProbe)) ||
-    (!params.isPrimary && inferredReason === "rate_limit");
+    (params.isPrimary && (!params.requestedModel || shouldProbe || anyHalfOpen)) ||
+    (!params.isPrimary && (inferredReason === "rate_limit" || anyHalfOpen));
   if (!shouldAttemptDespiteCooldown) {
     return {
       type: "skip",

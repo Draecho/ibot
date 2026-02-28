@@ -8,6 +8,13 @@ export type MemoryConfig = {
   backend?: MemoryBackend;
   citations?: MemoryCitationsMode;
   qmd?: MemoryQmdConfig;
+  /** LLM-powered query reformulation for memory search. */
+  queryReformulation?: {
+    /** Enable LLM query reformulation (default: false). */
+    enabled?: boolean;
+    /** Maximum number of alternative queries to generate (default: 3). */
+    maxReformulations?: number;
+  };
 };
 
 export type MemoryQmdConfig = {

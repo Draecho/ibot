@@ -54,6 +54,8 @@ export type ProfileUsageStats = {
   errorCount?: number;
   failureCounts?: Partial<Record<AuthProfileFailureReason, number>>;
   lastFailureAt?: number;
+  /** Consecutive successes while in half-open circuit-breaker state. */
+  halfOpenSuccessCount?: number;
 };
 
 export type AuthProfileStore = {

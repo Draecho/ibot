@@ -168,6 +168,40 @@ function buildVoiceSection(params: { isMinimal: boolean; ttsHint?: string }) {
   return ["## Voice (TTS)", hint, ""];
 }
 
+function buildPersonaSection(params: {
+  persona?: Record<string, string>;
+  runtimeChannel?: string;
+}): string[] {
+  const { persona, runtimeChannel } = params;
+  if (!persona || Object.keys(persona).length === 0) {
+    return [];
+  }
+
+  // If a runtime channel is active and has a persona entry, inject it directly.
+  if (runtimeChannel) {
+    const channelPersona = persona[runtimeChannel];
+    if (channelPersona?.trim()) {
+      return [
+        "## Persona",
+        `When responding on ${runtimeChannel}: ${channelPersona.trim()}`,
+        "",
+      ];
+    }
+  }
+
+  // Otherwise, list all configured persona entries.
+  const entries = Object.entries(persona).filter(([, text]) => text?.trim());
+  if (entries.length === 0) {
+    return [];
+  }
+  const lines = ["## Persona"];
+  for (const [channel, text] of entries) {
+    lines.push(`- When responding on ${channel}: ${text.trim()}`);
+  }
+  lines.push("");
+  return lines;
+}
+
 function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readToolName: string }) {
   const docsPath = params.docsPath?.trim();
   if (!docsPath || params.isMinimal) {
@@ -232,6 +266,8 @@ export function buildAgentSystemPrompt(params: {
     channel: string;
   };
   memoryCitationsMode?: MemoryCitationsMode;
+  /** Per-channel persona overrides (channel → persona text). */
+  persona?: Record<string, string>;
 }) {
   const acpEnabled = params.acpEnabled !== false;
   const coreToolSummaries: Record<string, string> = {
@@ -567,6 +603,7 @@ export function buildAgentSystemPrompt(params: {
       messageToolHints: params.messageToolHints,
     }),
     ...buildVoiceSection({ isMinimal, ttsHint: params.ttsHint }),
+    ...buildPersonaSection({ persona: params.persona, runtimeChannel }),
   ];
 
   if (extraSystemPrompt) {
